@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>PanoStitch — Interactive Panorama Stitcher</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="app">
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">▱▱▱</span>
+      <span class="title">PanoStitch</span>
+      <span class="tag">Interactive panorama stitcher</span>
+    </div>
+    <div class="topbar-actions">
+      <button id="btn-new" class="btn btn-ghost" title="Start a new project">New</button>
+      <button id="btn-save" class="btn btn-ghost" title="Save project as JSON">Save</button>
+      <button id="btn-load" class="btn btn-ghost" title="Load project from JSON">Load</button>
+      <input type="file" id="file-load" accept="application/json" hidden />
+      <button id="btn-export" class="btn btn-primary" title="Export merged PNG">Export PNG</button>
+    </div>
+  </header>
+
+  <div class="layout">
+    <aside class="sidebar">
+      <section class="panel">
+        <h3>1. Photos</h3>
+        <div id="dropzone" class="dropzone">
+          <p><strong>Drop photos here</strong></p>
+          <p class="muted">or click to browse • JPG/PNG/WebP/HEIC</p>
+          <input type="file" id="file-input" accept="image/*" multiple hidden />
+        </div>
+        <ul id="layer-list" class="layer-list"></ul>
+      </section>
+
+      <section class="panel">
+        <h3>2. Auto-align</h3>
+        <p class="muted small">Feature-match selected photo to the layer below it.</p>
+        <button id="btn-autoalign" class="btn btn-block" disabled>Auto-align selected</button>
+        <button id="btn-autoalign-all" class="btn btn-block" disabled>Auto-align all (left → right)</button>
+        <div class="status" id="opencv-status">Loading OpenCV.js…</div>
+      </section>
+
+      <section class="panel">
+        <h3>3. Adjust</h3>
+        <div class="controls">
+          <label>X offset <input type="range" id="ctrl-x" min="-2000" max="2000" value="0" step="1" disabled /><span id="val-x">0</span></label>
+          <label>Y offset <input type="range" id="ctrl-y" min="-2000" max="2000" value="0" step="1" disabled /><span id="val-y">0</span></label>
+          <label>Scale <input type="range" id="ctrl-scale" min="0.1" max="3" value="1" step="0.001" disabled /><span id="val-scale">1.000</span></label>
+          <label>Rotation <input type="range" id="ctrl-rot" min="-30" max="30" value="0" step="0.1" disabled /><span id="val-rot">0.0°</span></label>
+          <label>Skew X <input type="range" id="ctrl-skewx" min="-0.5" max="0.5" value="0" step="0.001" disabled /><span id="val-skewx">0.000</span></label>
+          <label>Skew Y <input type="range" id="ctrl-skewy" min="-0.5" max="0.5" value="0" step="0.001" disabled /><span id="val-skewy">0.000</span></label>
+          <label>Feather (px) <input type="range" id="ctrl-feather" min="0" max="300" value="60" step="1" disabled /><span id="val-feather">60</span></label>
+          <label>Opacity <input type="range" id="ctrl-opacity" min="0" max="1" value="1" step="0.01" disabled /><span id="val-opacity">1.00</span></label>
+        </div>
+        <div class="row-buttons">
+          <button id="btn-reset" class="btn btn-ghost" disabled>Reset transform</button>
+          <button id="btn-delete" class="btn btn-danger" disabled>Delete layer</button>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h3>4. Tools</h3>
+        <div class="tool-grid">
+          <button id="tool-move" class="tool active" data-tool="move">✥ Move</button>
+          <button id="tool-mask" class="tool" data-tool="mask">✎ Mask</button>
+          <button id="tool-erase" class="tool" data-tool="erase">⌫ Erase</button>
+          <button id="tool-crop" class="tool" data-tool="crop">⛶ Crop</button>
+        </div>
+        <label class="mask-brush-row">Brush size <input type="range" id="ctrl-brush" min="5" max="200" value="40" step="1" /><span id="val-brush">40</span></label>
+        <button id="btn-autolevel" class="btn btn-block" disabled>Auto-level horizon</button>
+      </section>
+
+      <section class="panel">
+        <h3>5. Canvas</h3>
+        <div class="controls">
+          <label>Canvas W <input type="number" id="canvas-w" value="6000" min="500" max="20000" step="100" /></label>
+          <label>Canvas H <input type="number" id="canvas-h" value="1800" min="500" max="10000" step="100" /></label>
+          <label>BG color <input type="color" id="canvas-bg" value="#0a0a0a" /></label>
+        </div>
+        <button id="btn-fitview" class="btn btn-block">Fit view</button>
+      </section>
+    </aside>
+
+    <main class="canvas-area">
+      <div class="canvas-toolbar">
+        <div class="zoom-controls">
+          <button id="btn-zoom-out" class="btn btn-icon">−</button>
+          <span id="zoom-label">100%</span>
+          <button id="btn-zoom-in" class="btn btn-icon">+</button>
+          <button id="btn-zoom-fit" class="btn btn-ghost">Fit</button>
+          <button id="btn-zoom-100" class="btn btn-ghost">1:1</button>
+        </div>
+        <div class="canvas-info" id="canvas-info">No layers yet — drop some photos to start.</div>
+      </div>
+      <div id="canvas-wrap" class="canvas-wrap">
+        <canvas id="canvas-bg-grid"></canvas>
+        <canvas id="canvas-main"></canvas>
+        <canvas id="canvas-overlay"></canvas>
+      </div>
+    </main>
+  </div>
+
+  <div id="toast" class="toast"></div>
+</div>
+
+<script async src="https://cdn.jsdelivr.net/npm/@techstark/opencv-js@4.10.0-release.1/dist/opencv.js" onload="window.dispatchEvent(new Event('opencv-loaded'))"></script>
+<script src="app.js"></script>
+</body>
+</html>
+
