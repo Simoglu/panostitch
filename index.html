@@ -68,6 +68,7 @@
         <h3>4. Tools</h3>
         <div class="tool-grid">
           <button id="tool-move" class="tool active" data-tool="move">✥ Move</button>
+          <button id="tool-pan" class="tool" data-tool="pan">✋ Pan</button>
           <button id="tool-mask" class="tool" data-tool="mask">✎ Mask</button>
           <button id="tool-erase" class="tool" data-tool="erase">⌫ Erase</button>
           <button id="tool-crop" class="tool" data-tool="crop">⛶ Crop</button>
@@ -89,8 +90,8 @@
           <button class="aspect" data-ar="fit" title="Snap canvas to fit current layers exactly">Fit layers</button>
         </div>
         <div class="controls">
-          <label>Canvas W <input type="number" id="canvas-w" value="6000" min="500" max="20000" step="100" /></label>
-          <label>Canvas H <input type="number" id="canvas-h" value="1800" min="500" max="10000" step="100" /></label>
+          <label>Canvas W <input type="number" id="canvas-w" value="2400" min="500" max="20000" step="100" /></label>
+          <label>Canvas H <input type="number" id="canvas-h" value="900" min="500" max="10000" step="100" /></label>
           <label>BG color <input type="color" id="canvas-bg" value="#0a0a0a" /></label>
         </div>
         <button id="btn-fitview" class="btn btn-block">Fit view</button>
@@ -100,13 +101,15 @@
     <main class="canvas-area">
       <div class="canvas-toolbar">
         <div class="zoom-controls">
-          <button id="btn-zoom-out" class="btn btn-icon">−</button>
+          <button id="btn-zoom-out" class="btn btn-icon" title="Zoom out">−</button>
           <span id="zoom-label">100%</span>
-          <button id="btn-zoom-in" class="btn btn-icon">+</button>
-          <button id="btn-zoom-fit" class="btn btn-ghost">Fit</button>
-          <button id="btn-zoom-100" class="btn btn-ghost">1:1</button>
+          <button id="btn-zoom-in" class="btn btn-icon" title="Zoom in">+</button>
+          <button id="btn-zoom-fit" class="btn btn-ghost" title="Fit view to canvas">Fit</button>
+          <button id="btn-zoom-content" class="btn btn-ghost" title="Zoom to the photos you've loaded">Fit photos</button>
+          <button id="btn-zoom-100" class="btn btn-ghost" title="100% — actual pixels">1:1</button>
         </div>
         <div class="canvas-info" id="canvas-info">No layers yet — drop some photos to start.</div>
+        <div class="canvas-hint">drag=move · Space+drag=pan · wheel=zoom</div>
       </div>
       <div id="canvas-wrap" class="canvas-wrap">
         <canvas id="canvas-bg-grid"></canvas>
@@ -123,5 +126,8 @@
 <script src="app.js"></script>
 </body>
 </html>
+
+
+
 
 

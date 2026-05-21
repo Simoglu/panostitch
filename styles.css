@@ -81,3 +81,10 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',system-ui,sans-s
 .aspect.active{background:rgba(231,235,70,0.12);border-color:var(--accent);color:var(--accent)}
 .aspect[data-ar="fit"]{background:rgba(255,216,77,0.08);border-color:var(--border-strong);color:var(--accent-2)}
 .aspect[data-ar="fit"]:hover{background:rgba(255,216,77,0.15)}
+
+.canvas-hint{margin-left:auto;font-size:10px;color:var(--text-mute);font-family:'JetBrains Mono',monospace;padding-right:4px;letter-spacing:0.3px}
+.canvas-toolbar .canvas-info{flex:1;text-align:right;padding-right:14px}
+.canvas-wrap.tool-pan #canvas-main{cursor:grab}
+.canvas-wrap.tool-pan.dragging #canvas-main{cursor:grabbing}
+.canvas-wrap.space-pan #canvas-main{cursor:grab !important}
+.canvas-wrap.space-pan.dragging #canvas-main{cursor:grabbing !important}
