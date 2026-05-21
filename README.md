@@ -1,0 +1,2 @@
+# panostitch
+Interactive panorama stitcher
