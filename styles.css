@@ -74,3 +74,10 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',system-ui,sans-s
 .toast.ok{border-color:var(--ok);color:var(--ok)}
 .layer-list,.sidebar{scrollbar-width:thin;scrollbar-color:var(--bg-4) transparent}
 
+
+.aspect-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-bottom:10px}
+.aspect{background:var(--bg-2);border:1px solid var(--border);color:var(--text-dim);padding:6px 4px;border-radius:4px;font-family:inherit;font-size:11px;cursor:pointer;transition:all 0.12s;font-weight:500}
+.aspect:hover{background:var(--bg-4);color:var(--text);border-color:var(--border-strong)}
+.aspect.active{background:rgba(231,235,70,0.12);border-color:var(--accent);color:var(--accent)}
+.aspect[data-ar="fit"]{background:rgba(255,216,77,0.08);border-color:var(--border-strong);color:var(--accent-2)}
+.aspect[data-ar="fit"]:hover{background:rgba(255,216,77,0.15)}

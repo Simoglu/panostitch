@@ -327,7 +327,28 @@ async function autoAlignPair(refLayer,movingLayer){
 }
 
 $('btn-autoalign').addEventListener('click',async()=>{const l=selectedLayer();if(!l)return;const i=state.layers.indexOf(l);if(i===0){toast_show('First layer has nothing to align to');return;}await autoAlignPair(state.layers[i-1],l);refreshControls();render();});
-$('btn-autoalign-all').addEventListener('click',async()=>{if(state.layers.length<2)return;for(let i=1;i<state.layers.length;i++){await autoAlignPair(state.layers[i-1],state.layers[i]);render();await new Promise(r=>setTimeout(r,50));}refreshControls();render();toast_show('Auto-align complete','ok');});
+$('btn-autoalign-all').addEventListener('click',async()=>{
+  if(state.layers.length<2)return;
+  let ok=0,fail=0;
+  const failedNames=[];
+  for(let i=1;i<state.layers.length;i++){
+    const r=await autoAlignPair(state.layers[i-1],state.layers[i]);
+    if(r)ok++;else{fail++;failedNames.push(state.layers[i].name);}
+    render();
+    await new Promise(r=>setTimeout(r,50));
+  }
+  refreshControls();render();
+  if(fail===0){
+    toast_show(`Aligned all ${ok} pair${ok>1?'s':''}`,'ok');
+    opencvStatus.textContent=`Aligned ${ok}/${ok} pairs`;opencvStatus.className='status ok';
+  }else if(ok===0){
+    toast_show(`All ${fail} pair${fail>1?'s':''} rejected — align manually`,'err');
+    opencvStatus.textContent=`0/${fail} pairs aligned — manual mode`;opencvStatus.className='status err';
+  }else{
+    toast_show(`Aligned ${ok}/${ok+fail} — ${fail} rejected, fix manually`,'err');
+    opencvStatus.textContent=`${ok}/${ok+fail} pairs aligned — ${failedNames.length} need manual fix`;opencvStatus.className='status err';
+  }
+});
 
 $('btn-autolevel').addEventListener('click',()=>{
   const l=selectedLayer();if(!l||!state.opencvReady)return;
@@ -413,6 +434,59 @@ window.addEventListener('keydown',(e)=>{
 
 window.addEventListener('resize',applyViewTransform);
 
+// --- Aspect ratio presets ---
+function setActiveAspect(ar){document.querySelectorAll('.aspect').forEach(b=>{b.classList.toggle('active',b.dataset.ar===ar);});}
+function applyAspect(ar){
+  if(ar==='fit'){
+    // Snap canvas tightly to current layer bounding box (with small padding)
+    if(state.layers.length===0){toast_show('No layers to fit','err');return;}
+    let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
+    for(const l of state.layers){
+      if(!l.visible)continue;
+      const w=l.img.width*l.scale,h=l.img.height*l.scale;
+      const cx=l.x+w/2,cy=l.y+h/2;
+      const rad=l.rotation*Math.PI/180;
+      const corners=[[-w/2,-h/2],[w/2,-h/2],[w/2,h/2],[-w/2,h/2]];
+      for(const[dx,dy]of corners){
+        const px=cx+dx*Math.cos(rad)-dy*Math.sin(rad);
+        const py=cy+dx*Math.sin(rad)+dy*Math.cos(rad);
+        if(px<minX)minX=px;if(py<minY)minY=py;if(px>maxX)maxX=px;if(py>maxY)maxY=py;
+      }
+    }
+    if(!isFinite(minX)){toast_show('No visible layers','err');return;}
+    const pad=20;
+    const ox=Math.floor(minX-pad),oy=Math.floor(minY-pad);
+    state.layers.forEach(l=>{l.x-=ox;l.y-=oy;});
+    state.canvasW=Math.ceil(maxX-minX+pad*2);
+    state.canvasH=Math.ceil(maxY-minY+pad*2);
+    $('canvas-w').value=state.canvasW;$('canvas-h').value=state.canvasH;
+    resizeCanvases();fitView();refreshControls();render();
+    setActiveAspect('fit');
+    toast_show(`Fit canvas: ${state.canvasW}×${state.canvasH}`,'ok');
+    return;
+  }
+  const[wPart,hPart]=ar.split(':').map(Number);
+  if(!wPart||!hPart)return;
+  const ratio=wPart/hPart;
+  // Preserve total area (keeps roughly the same pixel budget)
+  const area=state.canvasW*state.canvasH;
+  let newW=Math.round(Math.sqrt(area*ratio));
+  let newH=Math.round(newW/ratio);
+  // Clamp to slider bounds
+  newW=clamp(newW,500,20000);newH=clamp(newH,500,10000);
+  // If clamp distorted ratio, re-derive the other axis
+  if(Math.abs((newW/newH)-ratio)>0.01){newH=Math.round(newW/ratio);}
+  state.canvasW=newW;state.canvasH=newH;
+  $('canvas-w').value=newW;$('canvas-h').value=newH;
+  resizeCanvases();fitView();render();
+  setActiveAspect(ar);
+  toast_show(`Canvas: ${ar} (${newW}×${newH})`,'ok');
+}
+document.querySelectorAll('.aspect').forEach(btn=>{btn.addEventListener('click',()=>applyAspect(btn.dataset.ar));});
+// Initial highlight for current default ratio (6000×1800 = 10:3, doesn't match presets; leave none active)
+
 resizeCanvases();fitView();render();
 })();
+
+
 
