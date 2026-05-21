@@ -139,7 +139,61 @@ function fitToPhotos(){
 }
 $('btn-zoom-content').addEventListener('click',fitToPhotos);
 
-wrap.addEventListener('wheel',(e)=>{e.preventDefault();e.stopPropagation();const r=wrap.getBoundingClientRect();const mx=e.clientX-r.left,my=e.clientY-r.top;const cx=(mx-state.viewX)/state.viewZoom,cy=(my-state.viewY)/state.viewZoom;const dir=e.deltaY<0?1:-1;const f=Math.pow(1.06,dir);state.viewZoom=clamp(state.viewZoom*f,0.02,8);state.viewX=mx-cx*state.viewZoom;state.viewY=my-cy*state.viewZoom;applyViewTransform();},{passive:false});
+wrap.addEventListener('wheel',(e)=>{
+  e.preventDefault();e.stopPropagation();
+  const r=wrap.getBoundingClientRect();
+  const mx=e.clientX-r.left,my=e.clientY-r.top;
+  const dir=e.deltaY<0?1:-1;
+  // Ctrl/Cmd+wheel = always zoom the workspace (escape hatch)
+  if(e.ctrlKey||e.metaKey){
+    const cx=(mx-state.viewX)/state.viewZoom,cy=(my-state.viewY)/state.viewZoom;
+    state.viewZoom=clamp(state.viewZoom*Math.pow(1.06,dir),0.02,8);
+    state.viewX=mx-cx*state.viewZoom;state.viewY=my-cy*state.viewZoom;
+    applyViewTransform();
+    return;
+  }
+  // Find target layer: prefer selected if cursor is over it, else topmost layer under cursor
+  const canvasPt={x:(mx-state.viewX)/state.viewZoom,y:(my-state.viewY)/state.viewZoom};
+  let target=null;
+  const sel=selectedLayer();
+  if(sel&&sel.visible){
+    const lp=canvasToLayer(canvasPt,sel);
+    if(lp.x>=0&&lp.x<sel.img.width&&lp.y>=0&&lp.y<sel.img.height)target=sel;
+  }
+  if(!target){
+    for(let i=state.layers.length-1;i>=0;i--){
+      const l=state.layers[i];if(!l.visible)continue;
+      const lp=canvasToLayer(canvasPt,l);
+      if(lp.x>=0&&lp.x<l.img.width&&lp.y>=0&&lp.y<l.img.height){target=l;break;}
+    }
+  }
+  if(target){
+    // Scale the target layer around the cursor point so it doesn't drift away
+    if(state.selectedId!==target.id)setSelected(target.id);
+    const factor=Math.pow(1.04,dir);
+    const newScale=clamp(target.scale*factor,0.05,10);
+    if(newScale!==target.scale){
+      // Anchor: keep the canvas-space point under the cursor fixed during scale
+      const lpBefore=canvasToLayer(canvasPt,target);
+      target.scale=newScale;
+      // Compute where lpBefore now sits in canvas coords after scale change
+      const cx=(target.img.width*target.scale)/2,cy=(target.img.height*target.scale)/2;
+      const rad=target.rotation*Math.PI/180;
+      const cR=Math.cos(rad),sR=Math.sin(rad);
+      const dx=(lpBefore.x-target.img.width/2)*target.scale,dy=(lpBefore.y-target.img.height/2)*target.scale;
+      const px=target.x+cx+dx*cR-dy*sR+target.skewX*dy;
+      const py=target.y+cy+dx*sR+dy*cR+target.skewY*dx;
+      target.x+=canvasPt.x-px;target.y+=canvasPt.y-py;
+      refreshControls();render();
+    }
+  }else{
+    // Empty canvas under cursor → zoom workspace
+    const cx=(mx-state.viewX)/state.viewZoom,cy=(my-state.viewY)/state.viewZoom;
+    state.viewZoom=clamp(state.viewZoom*Math.pow(1.06,dir),0.02,8);
+    state.viewX=mx-cx*state.viewZoom;state.viewY=my-cy*state.viewZoom;
+    applyViewTransform();
+  }
+},{passive:false});
 
 let isPanning=false,panStart=null;
 function startPan(e){isPanning=true;panStart={x:e.clientX-state.viewX,y:e.clientY-state.viewY};wrap.classList.add('dragging');e.preventDefault();}
@@ -528,6 +582,7 @@ document.querySelectorAll('.aspect').forEach(btn=>{btn.addEventListener('click',
 
 resizeCanvases();fitView();render();
 })();
+
 
 
 
